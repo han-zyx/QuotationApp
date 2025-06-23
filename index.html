@@ -26,6 +26,11 @@
     }
     label { display: block; margin-top: 10px; font-weight: bold; }
     #tableHeaderColor { width: 100px; }
+    /* Add cursor style for draggable rows */
+    tr[draggable="true"] { cursor: move; }
+    tr.dragging { opacity: 0.5; background-color: #f0f0f0; }
+    /* Style for index column */
+    .index-cell { text-align: center; width: 50px; }
   </style>
 </head>
 <body>
@@ -67,6 +72,7 @@
   <table id="itemTable">
     <thead>
       <tr>
+        <th class="index-cell">Index</th>
         <th>Item Description</th>
         <th>Quantity</th>
         <th>Unit Price</th>
@@ -117,22 +123,38 @@
     return [r, g, b];
   }
 
+  // Function to update index numbers
+  function updateIndexes() {
+    const rows = document.querySelectorAll('#itemBody tr');
+    rows.forEach((row, index) => {
+      row.children[0].innerText = index + 1; // Set index starting from 1
+    });
+  }
+
   function addItem() {
     const tbody = document.getElementById('itemBody');
     const row = document.createElement('tr');
+    row.setAttribute('draggable', 'true'); // Make row draggable
     row.innerHTML = `
+      <td class="index-cell"></td> <!-- Index cell -->
       <td><input type="text" placeholder="Description" oninput="updateTotal()"></td>
       <td><input type="number" value="1" min="1" oninput="updateTotal()"></td>
       <td><input type="number" value="0" min="0" oninput="updateTotal()"></td>
       <td class="total">0.00</td>
       <td><button onclick="removeRow(this)">Remove</button></td>
     `;
+    // Add drag event listeners
+    row.addEventListener('dragstart', handleDragStart);
+    row.addEventListener('dragover', handleDragOver);
+    row.addEventListener('drop', handleDrop);
     tbody.appendChild(row);
+    updateIndexes(); // Update index numbers
     updateTotal();
   }
 
   function removeRow(button) {
     button.closest('tr').remove();
+    updateIndexes(); // Update index numbers
     updateTotal();
   }
 
@@ -140,10 +162,10 @@
     const rows = document.querySelectorAll('#itemBody tr');
     let grandTotal = 0;
     rows.forEach(row => {
-      const qty = parseFloat(row.children[1].children[0].value) || 0;
-      const price = parseFloat(row.children[2].children[0].value) || 0;
+      const qty = parseFloat(row.children[2].children[0].value) || 0; // Index 2 for Quantity
+      const price = parseFloat(row.children[3].children[0].value) || 0; // Index 3 for Unit Price
       const total = qty * price;
-      row.children[3].innerText = total.toFixed(2);
+      row.children[4].innerText = total.toFixed(2); // Index 4 for Total
       grandTotal += total;
     });
     document.getElementById('grandTotal').innerText = grandTotal.toFixed(2);
@@ -151,6 +173,42 @@
     const advance = parseFloat(document.getElementById('advance').value) || 0;
     const balance = grandTotal - advance;
     document.getElementById('balance').innerText = balance.toFixed(2);
+  }
+
+  // Drag-and-drop functions
+  let draggedRow = null;
+
+  function handleDragStart(e) {
+    draggedRow = e.target.closest('tr');
+    e.target.closest('tr').classList.add('dragging');
+    e.dataTransfer.effectAllowed = 'move';
+  }
+
+  function handleDragOver(e) {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+  }
+
+  function handleDrop(e) {
+    e.preventDefault();
+    const dropTarget = e.target.closest('tr');
+    if (draggedRow && dropTarget && draggedRow !== dropTarget) {
+      const tbody = document.getElementById('itemBody');
+      const allRows = Array.from(tbody.querySelectorAll('tr'));
+      const draggedIndex = allRows.indexOf(draggedRow);
+      const targetIndex = allRows.indexOf(dropTarget);
+
+      // Insert dragged row before or after the drop target based on position
+      if (draggedIndex < targetIndex) {
+        dropTarget.parentNode.insertBefore(draggedRow, dropTarget.nextSibling);
+      } else {
+        dropTarget.parentNode.insertBefore(draggedRow, dropTarget);
+      }
+    }
+    draggedRow.classList.remove('dragging');
+    draggedRow = null;
+    updateIndexes(); // Update index numbers after reordering
+    updateTotal(); // Recalculate totals after reordering
   }
 
   async function exportPDF() {
@@ -219,34 +277,45 @@
     const rows = [];
     const tableRows = document.querySelectorAll('#itemBody tr');
     tableRows.forEach(row => {
-      const desc = row.children[0].children[0].value;
-      const qty = row.children[1].children[0].value;
-      const price = row.children[2].children[0].value;
-      const total = row.children[3].innerText;
-      rows.push([desc, qty, price, total]);
+      const index = row.children[0].innerText; // Index
+      const desc = row.children[1].children[0].value; // Description
+      const qty = row.children[2].children[0].value; // Quantity
+      const price = row.children[3].children[0].value; // Unit Price
+      const total = row.children[4].innerText; // Total
+      rows.push([index, desc, qty, price, total]);
     });
 
     const grandTotal = parseFloat(document.getElementById('grandTotal').innerText) || 0;
     const advance = parseFloat(document.getElementById('advance').value) || 0;
     const balance = grandTotal - advance;
 
-    rows.push(["", "", "Grand Total - LKR", grandTotal.toFixed(2)]);
-    rows.push(["", "", "Advance Payment - LKR", advance.toFixed(2)]);
-    rows.push(["", "", "Balance - LKR", balance.toFixed(2)]);
+    rows.push(["", "", "", "Grand Total - LKR", grandTotal.toFixed(2)]);
+    rows.push(["", "", "", "Advance Payment - LKR", advance.toFixed(2)]);
+    rows.push(["", "", "", "Balance - LKR", balance.toFixed(2)]);
 
     doc.autoTable({
-      head: [["Description", "Quantity", "Unit Price", "Total"]],
+      head: [["Index", "Description", "Quantity", "Unit Price", "Total"]],
       body: rows,
       startY: infoStartY + 35,
       theme: 'grid',
       styles: { fontSize: 10 },
       headStyles: { fillColor: hexToRgb(tableHeaderColor), textColor: 255, fillOpacity: 0.6 },
       columnStyles: {
-        3: { halign: 'right' } // Left-align the "Total" column (index 3)
+        0: { halign: 'center', cellWidth: 20 }, // Center-align and set width for Index column
+        4: { halign: 'right' } // Right-align the "Total" column values (index 4)
       },
       didParseCell: function (data) {
         const rowIndex = data.row.index;
         const totalRows = rows.length;
+        // Right-align the "Total" header
+        if (data.section === 'head' && data.column.index === 4) {
+          data.cell.styles.halign = 'right';
+        }
+        // Center-align the "Index" header and values
+        if (data.column.index === 0) {
+          data.cell.styles.halign = 'center';
+        }
+        // Bold the last three rows (Grand Total, Advance Payment, Balance)
         if (rowIndex >= totalRows - 3) {
           data.cell.styles.fontStyle = 'bold';
         }
