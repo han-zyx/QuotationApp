@@ -166,6 +166,12 @@
     const clientMobile = document.getElementById('clientMobile').value || "N/A";
     const tableHeaderColor = document.getElementById('tableHeaderColor').value || "#2524ec";
 
+    // Sanitize companyName and clientName for filename
+    const sanitize = (str) => str.replace(/[^a-zA-Z0-9-_]/g, '_').replace(/_+/g, '_').replace(/^_|_$/g, '') || 'Unknown';
+    const sanitizedCompanyName = sanitize(companyName);
+    const sanitizedClientName = sanitize(clientName);
+    const fileName = `Quotation-${sanitizedCompanyName}-${sanitizedClientName}.pdf`;
+
     // Add logo image (30x30 px) if uploaded
     function addLogoImage() {
       return new Promise((resolve) => {
@@ -260,7 +266,7 @@
     const footerContactWidth = doc.getTextWidth(footerContact);
     doc.text(footerContact, (pageWidth - footerContactWidth) / 2, pageHeight - 15);
 
-    doc.save("quotation.pdf");
+    doc.save(fileName);
   }
 
   addItem();
