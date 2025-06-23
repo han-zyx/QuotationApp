@@ -241,6 +241,9 @@
       theme: 'grid',
       styles: { fontSize: 10 },
       headStyles: { fillColor: hexToRgb(tableHeaderColor), textColor: 255, fillOpacity: 0.6 },
+      columnStyles: {
+        3: { halign: 'right' } // Left-align the "Total" column (index 3)
+      },
       didParseCell: function (data) {
         const rowIndex = data.row.index;
         const totalRows = rows.length;
