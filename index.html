@@ -230,9 +230,9 @@
     const advance = parseFloat(document.getElementById('advance').value) || 0;
     const balance = grandTotal - advance;
 
-    rows.push(["", "", "Grand Total", grandTotal.toFixed(2)]);
-    rows.push(["", "", "Advance Payment", advance.toFixed(2)]);
-    rows.push(["", "", "Balance", balance.toFixed(2)]);
+    rows.push(["", "", "Grand Total - LKR", grandTotal.toFixed(2)]);
+    rows.push(["", "", "Advance Payment - LKR", advance.toFixed(2)]);
+    rows.push(["", "", "Balance - LKR", balance.toFixed(2)]);
 
     doc.autoTable({
       head: [["Description", "Quantity", "Unit Price", "Total"]],
