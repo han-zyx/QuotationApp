@@ -8,7 +8,7 @@
     body { font-family: Arial, sans-serif; max-width: 800px; margin: 40px auto; }
     table { width: 100%; border-collapse: collapse; margin-top: 10px; }
     th, td { border: 1px solid #ccc; padding: 8px; text-align: left; }
-    input { padding: 5px; margin: 5px 0; width: 100%; box-sizing: border-box; }
+    input, textarea { padding: 5px; margin: 5px 0; width: 100%; box-sizing: border-box; }
     .total { font-weight: bold; margin-top: 10px; }
     .btn { margin-top: 15px; padding: 10px 20px; cursor: pointer; }
     .right-align { text-align: right; }
@@ -31,6 +31,8 @@
     tr.dragging { opacity: 0.5; background-color: #f0f0f0; }
     /* Style for index column */
     .index-cell { text-align: center; width: 50px; }
+    /* Style for notes textarea */
+    #extraNotes { height: 100px; resize: vertical; }
   </style>
 </head>
 <body>
@@ -96,7 +98,12 @@
   <div class="total right-align">
     Balance: Rs. <span id="balance">0.00</span>
   </div>
+</div>
 
+<div class="section">
+  <h3>Add Extra Notes</h3>
+  <label>Notes:</label>
+  <textarea id="extraNotes" placeholder="Enter any additional notes here"></textarea>
   <button onclick="exportPDF()" class="btn">📄 Export as PDF</button>
 </div>
 
@@ -223,6 +230,7 @@
     const clientName = document.getElementById('clientName').value || "N/A";
     const clientMobile = document.getElementById('clientMobile').value || "N/A";
     const tableHeaderColor = document.getElementById('tableHeaderColor').value || "#2524ec";
+    const extraNotes = document.getElementById('extraNotes').value.trim();
 
     // Sanitize companyName and clientName for filename
     const sanitize = (str) => str.replace(/[^a-zA-Z0-9-_]/g, '_').replace(/_+/g, '_').replace(/^_|_$/g, '') || 'Unknown';
@@ -293,7 +301,8 @@
     rows.push(["", "", "", "Advance Payment - LKR", advance.toFixed(2)]);
     rows.push(["", "", "", "Balance - LKR", balance.toFixed(2)]);
 
-    doc.autoTable({
+    // Get the final Y position after the table
+    const tableFinalY = doc.autoTable({
       head: [["Index", "Description", "Quantity", "Unit Price", "Total"]],
       body: rows,
       startY: infoStartY + 35,
@@ -320,7 +329,18 @@
           data.cell.styles.fontStyle = 'bold';
         }
       }
-    });
+    }).lastAutoTable.finalY;
+
+    // Add Extra Notes section in the PDF if notes exist
+    if (extraNotes) {
+      doc.setFontSize(11);
+      doc.setFont("helvetica", "bold");
+      doc.text("Extra Notes:", 14, tableFinalY + 10);
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(10);
+      const splitNotes = doc.splitTextToSize(extraNotes, pageWidth - 28); // Wrap text to fit page width
+      doc.text(splitNotes, 14, tableFinalY + 18);
+    }
 
     // Footer: Line separator and centered content
     const pageHeight = doc.internal.pageSize.height;
