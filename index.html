@@ -8,7 +8,7 @@
     body { font-family: Arial, sans-serif; max-width: 800px; margin: 40px auto; }
     table { width: 100%; border-collapse: collapse; margin-top: 10px; }
     th, td { border: 1px solid #ccc; padding: 8px; text-align: left; }
-    input, textarea { padding: 5px; margin: 5px 0; width: 100%; box-sizing: border-box; }
+    input, textarea, select { padding: 5px; margin: 5px 0; width: 100%; box-sizing: border-box; }
     .total { font-weight: bold; margin-top: 10px; }
     .btn { margin-top: 15px; padding: 10px 20px; cursor: pointer; }
     .right-align { text-align: right; }
@@ -59,7 +59,13 @@
 
 <div class="section">
   <h3>Client Details</h3>
-  <label>Quotation Number:</label>
+  <label>Document Type:</label>
+  <select id="documentType" onchange="updateLabels()">
+    <option value="Quotation">Quotation</option>
+    <option value="Payment Receipt">Payment Receipt</option>
+  </select>
+
+  <label id="numberLabel">Quotation Number:</label>
   <input type="text" id="quotationNumber" placeholder="Enter quotation number">
 
   <label>Client Name:</label>
@@ -128,6 +134,20 @@
     const g = parseInt(hex.slice(3, 5), 16);
     const b = parseInt(hex.slice(5, 7), 16);
     return [r, g, b];
+  }
+
+  // Update labels based on document type
+  function updateLabels() {
+    const docType = document.getElementById('documentType').value;
+    const numberLabel = document.getElementById('numberLabel');
+    const quotationNumberInput = document.getElementById('quotationNumber');
+    if (docType === 'Payment Receipt') {
+      numberLabel.textContent = 'Receipt Number:';
+      quotationNumberInput.placeholder = 'Enter receipt number';
+    } else {
+      numberLabel.textContent = 'Quotation Number:';
+      quotationNumberInput.placeholder = 'Enter quotation number';
+    }
   }
 
   // Function to update index numbers
@@ -226,6 +246,8 @@
     const companyName = document.getElementById('companyName').value || "N/A";
     const companyEmail = document.getElementById('companyEmail').value || "N/A";
     const companyMobile = document.getElementById('companyMobile').value || "N/A";
+    const documentType = document.getElementById('documentType').value;
+    const numberLabel = documentType === 'Payment Receipt' ? 'Receipt No' : 'Quotation No';
     const quotationNumber = document.getElementById('quotationNumber').value || "N/A";
     const clientName = document.getElementById('clientName').value || "N/A";
     const clientMobile = document.getElementById('clientMobile').value || "N/A";
@@ -236,7 +258,7 @@
     const sanitize = (str) => str.replace(/[^a-zA-Z0-9-_]/g, '_').replace(/_+/g, '_').replace(/^_|_$/g, '') || 'Unknown';
     const sanitizedCompanyName = sanitize(companyName);
     const sanitizedClientName = sanitize(clientName);
-    const fileName = `Quotation-${sanitizedCompanyName}-${sanitizedClientName}.pdf`;
+    const fileName = `${documentType === 'Payment Receipt' ? 'Receipt' : 'Quotation'}-${sanitizedCompanyName}-${sanitizedClientName}.pdf`;
 
     // Add logo image (30x30 px) if uploaded
     function addLogoImage() {
@@ -273,10 +295,10 @@
     doc.setLineWidth(0.2);
     doc.line(14, 50, pageWidth - 14, 50);
 
-    // Quotation and client details below header (left-aligned)
+    // Client details below header (left-aligned)
     const infoStartY = 60;
     doc.setFontSize(11);
-    doc.text(`Quotation No: ${quotationNumber}`, 14, infoStartY);
+    doc.text(`${numberLabel}: ${quotationNumber}`, 14, infoStartY);
     doc.text(`Date: ${date}`, 14, infoStartY + 8);
     doc.text(`Client Name: ${clientName}`, 14, infoStartY + 16);
     doc.text(`Mobile: ${clientMobile}`, 14, infoStartY + 24);
@@ -361,6 +383,8 @@
     doc.save(fileName);
   }
 
+  // Initialize labels on page load
+  updateLabels();
   addItem();
 </script>
 
