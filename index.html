@@ -10,7 +10,7 @@
     th, td { border: 1px solid #ccc; padding: 8px; text-align: left; }
     input, textarea, select { padding: 5px; margin: 5px 0; width: 100%; box-sizing: border-box; }
     .total { font-weight: bold; margin-top: 10px; }
-    .btn { margin-top: 15px; padding: 10px 20px; cursor: pointer; }
+    .btn { margin-top: 15px; padding: 10px 20px; cursor: pointer; margin-right: 10px; }
     .right-align { text-align: right; }
     .section { 
       margin-top: 30px; 
@@ -98,7 +98,11 @@
   </div>
 
   <div class="total right-align">
-    Advance Payment: Rs. <input type="number" id="advance" value="0" oninput="updateTotal()" style="width: 100px;">
+    Discount: Rs. <input type="number" id="discount" value="0" min="0" oninput="updateTotal()" style="width: 100px;">
+  </div>
+
+  <div class="total right-align">
+    Advance Payment: Rs. <input type="number" id="advance" value="0" min="0" oninput="updateTotal()" style="width: 100px;">
   </div>
 
   <div class="total right-align">
@@ -110,6 +114,7 @@
   <h3>Add Extra Notes</h3>
   <label>Notes:</label>
   <textarea id="extraNotes" placeholder="Enter any additional notes here"></textarea>
+  <button onclick="previewPDF()" class="btn">👁️ Preview PDF</button>
   <button onclick="exportPDF()" class="btn">📄 Export as PDF</button>
 </div>
 
@@ -197,8 +202,9 @@
     });
     document.getElementById('grandTotal').innerText = grandTotal.toFixed(2);
 
+    const discount = parseFloat(document.getElementById('discount').value) || 0;
     const advance = parseFloat(document.getElementById('advance').value) || 0;
-    const balance = grandTotal - advance;
+    const balance = grandTotal - discount - advance;
     document.getElementById('balance').innerText = balance.toFixed(2);
   }
 
@@ -238,7 +244,7 @@
     updateTotal(); // Recalculate totals after reordering
   }
 
-  async function exportPDF() {
+  async function generatePDF(save = true) {
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF();
     const date = new Date().toLocaleDateString();
@@ -316,10 +322,12 @@
     });
 
     const grandTotal = parseFloat(document.getElementById('grandTotal').innerText) || 0;
+    const discount = parseFloat(document.getElementById('discount').value) || 0;
     const advance = parseFloat(document.getElementById('advance').value) || 0;
-    const balance = grandTotal - advance;
+    const balance = grandTotal - discount - advance;
 
     rows.push(["", "", "", "Grand Total - LKR", grandTotal.toFixed(2)]);
+    rows.push(["", "", "", "Discount - LKR", discount.toFixed(2)]);
     rows.push(["", "", "", "Advance Payment - LKR", advance.toFixed(2)]);
     rows.push(["", "", "", "Balance - LKR", balance.toFixed(2)]);
 
@@ -346,8 +354,8 @@
         if (data.column.index === 0) {
           data.cell.styles.halign = 'center';
         }
-        // Bold the last three rows (Grand Total, Advance Payment, Balance)
-        if (rowIndex >= totalRows - 3) {
+        // Bold the last four rows (Grand Total, Discount, Advance Payment, Balance)
+        if (rowIndex >= totalRows - 4) {
           data.cell.styles.fontStyle = 'bold';
         }
       }
@@ -380,7 +388,21 @@
     const footerContactWidth = doc.getTextWidth(footerContact);
     doc.text(footerContact, (pageWidth - footerContactWidth) / 2, pageHeight - 15);
 
-    doc.save(fileName);
+    if (save) {
+      doc.save(fileName);
+    } else {
+      const pdfBlob = doc.output('blob');
+      const pdfUrl = URL.createObjectURL(pdfBlob);
+      window.open(pdfUrl, '_blank');
+    }
+  }
+
+  async function previewPDF() {
+    await generatePDF(false); // Preview mode: open in new tab
+  }
+
+  async function exportPDF() {
+    await generatePDF(true); // Export mode: save the file
   }
 
   // Initialize labels on page load
